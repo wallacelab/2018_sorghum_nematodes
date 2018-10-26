@@ -7,13 +7,15 @@ parser=ArgumentParser()
 parser$add_argument("-i", "--infile", help="Input R/QTL file (output from step 1p)")
 parser$add_argument("-o", "--outprefix")
 parser$add_argument("-p", "--perms", type="integer", default=10, help="Number of random permutations to run")
-parser$add_argument("-z", "--zoom", help="Chromosome to zoom in on (currently only accepts 1)")
+# parser$add_argument("-z", "--zoom", help="Chromosome to zoom in on (currently only accepts 1)")
 parser$add_argument("-c", "--num-cores", type="integer", default=1, help="Number of computer cores to use")
+parser$add_argument("-s", "--seed", type="integer", default=1, help="Random seed to use")
 args=parser$parse_args()
 #setwd("/home/jgwall/Projects/Harris_SorghumQtl/")
-# args=parser$parse_args(c("-i","1p_rqtl_map.csv", "-o","99_tmp", "-z", "05", "-c", "7"))
+# args=parser$parse_args(c("-i","1p_rqtl_map.csv", "-o","99_tmp", "-c", "7"))
 
 # Load genotypes
+set.seed(args$seed)
 cat("Loading R/QTL map file from",args$infile,"\n")
 map=read.cross(file=args$infile, format="csv", genotypes=c("AA","AB","BB"))
 cat("\tLoaded",totmar(map),"genotypes and",nphe(map),"phenotypes\n")
@@ -34,36 +36,55 @@ perms = mclapply(phenames(map)[-1], function(mytrait){
 
 # Make plots
 nplots = length(cims)
-png(paste(args$outprefix, ".scans.png",sep=""), width=5 * nplots, height=6, units="in", res=150)
-    par(mfcol=c(2, nplots))
+dim = ceiling(sqrt(nplots))
+png(paste(args$outprefix, ".scans.png",sep=""), width=5 * dim, height=3*dim, units="in", res=150)
+    par(mfrow=c(dim, dim))
     for(i in 1:nplots){
         
         # Get cutoffs
         permlods = sort(as.numeric(perms[[i]]))
         cutoff_95 = permlods[length(permlods) * 0.95]
-        cutoff_99 = permlods[length(permlods) * 0.99]
         
         # Make plots
         mycim = cims[[i]]
-        ymax = max(c(cutoff_99, mycim$lod))
+        ymax = max(c(cutoff_95, mycim$lod))
         plot(mycim, ylim=c(0, ymax), main=names(cims)[i])
-        abline(h=cutoff_95, col="blue", lwd=1, lty='dotted')
-        abline(h=cutoff_99, col="red", lwd=1, lty='dashed')
+        abline(h=cutoff_95, col="darkred", lwd=1, lty='dotted')
         
-        plot(mycim, ylim=c(0, ymax), chr=args$zoom, main=names(cims)[i])    # Hardwired hack to zoom in on chromo
-        abline(h=cutoff_95, col="blue", lwd=1, lty='dotted')
-        abline(h=cutoff_99, col="red", lwd=1, lty='dashed')
     }
 dev.off()
 
-# 
-# # LOD interval
-# lodint(scan, chr="05", lodcolumn=3, drop=3)
 
-# Results of the above
-#       chr pos      BRIX eggperroot_categories eggperroot_log noeggs_categories noeggs_log   Rootwt
-# s1220  05 155 0.6146643              31.51105       32.27009          31.51105   32.88746 1.138557
-# s1221  05 160 0.6755093              36.65542       41.04529          36.65542   42.06997 1.455162
-# s1222  05 165 0.6176709              34.14317       35.91302          34.14317   37.93194 1.488995
 
-# LOD interval
+# Make plots
+nplots = length(cims)
+dim = ceiling(sqrt(nplots))
+svg(paste(args$outprefix, ".scans.svg",sep=""), width=5 * dim, height=3*dim)
+    par(mfrow=c(dim, dim))
+    for(i in 1:nplots){
+        
+        # Get cutoffs
+        permlods = sort(as.numeric(perms[[i]]))
+        cutoff_95 = permlods[length(permlods) * 0.95]
+        
+        # Make plots
+        mycim = cims[[i]]
+        ymax = max(c(cutoff_95, mycim$lod))
+        plot(mycim, ylim=c(0, ymax), main=names(cims)[i])
+        abline(h=cutoff_95, col="darkred", lwd=1, lty='dotted')
+        
+    }
+dev.off()
+
+# Write data and perms to get an idea of cutoffs
+saveRDS(cims, file=paste(args$outprefix, ".cim_results.rds",sep=""))
+
+cims.out = lapply(names(cims), function(trait){
+    data.frame(trait=trait, cims[[trait]])
+})
+cims.out = do.call(rbind, cims.out)
+write.table(cims.out, file=paste(args$outprefix, ".cim_results.txt",sep=""), sep='\t', quote=F, row.names=F, col.names=T)
+
+perms.out = do.call(cbind, perms)
+colnames(perms.out) = names(cims)
+write.table(perms.out, file=paste(args$outprefix, ".perm_results.txt",sep=""), sep='\t', quote=F, row.names=F, col.names=T)

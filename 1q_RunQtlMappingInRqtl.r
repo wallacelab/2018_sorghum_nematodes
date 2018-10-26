@@ -58,7 +58,7 @@ dev.off()
 
 # 
 # # LOD interval
-# lodint(scan, chr="05", lodcolumn=3, drop=3)
+# lodint(cims, chr="05", lodcolumn=3, drop=3)
 
 # Results of the above
 #       chr pos      BRIX eggperroot_categories eggperroot_log noeggs_categories noeggs_log   Rootwt

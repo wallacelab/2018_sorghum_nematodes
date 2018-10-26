@@ -124,7 +124,11 @@ if [ ! -e $imputedir ]; then mkdir $imputedir; fi
 # Manual inspection of the LD output with a cutoff of 0.8 impluies the QTL is from 5:2868700 to about 5:10382873, but there's a lot of wiggle room on the right slope
 
 # # Publication SNPs stats for text
-# target_snp=s1221
-# Rscript 2a_SnpStats.r -i 1d_genos.imputed.hmp.txt --phenofile 1h_good_phenos.tassel.txt --snp $target_snp -o 2a_snp_stats --reverse-log
-# Rscript 2a_SnpStats.r -i 1d_genos.imputed.hmp.txt --phenofile 1a_phenos_transformed.tassel.txt --snp $target_snp -o 2a_snp_stats.orig --reverse-log # Original phenotypes; easier to work with for paper main text
+target_snp=s1221
+genos="T Y C"
+Rscript 2a_SnpStats.r -i 1d_genos.imputed.hmp.txt --phenofile 1h_good_phenos.tassel.txt --snp $target_snp -o 2a_snp_stats.cleaned --reverse-log --geno-coding $genos
+Rscript 2a_SnpStats.r -i 1d_genos.imputed.hmp.txt --phenofile 1a_phenos_transformed.tassel.txt --snp $target_snp -o 2a_snp_stats.orig --reverse-log --geno-coding $genos # Original phenotypes; easier to work with for paper main text
 
+# Composite interval mapping results
+# Rscript 2b_RqtlMapping_publication.r -i 1p_rqtl_map.csv -o 2b_rqtl_analysis --perms 1000 --num-cores 7
+# Rscript 2c_LodIntervals.r -i 2b_rqtl_analysis.cim_results.rds --chrom 05 --traits eggperroot_log noeggs_log -o 2c_lod_intervals
